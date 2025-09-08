@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Full-window video</title>
+  <style>
+    /* remove default page margins */
+    html,body {
+      height: 100%;
+      margin: 0;
+      background: black;
+      overflow: hidden; /* prevent scrolling */
+    }
+
+    /* video fills the browser window */
+    #vw {
+      position: fixed;
+      inset: 0;            /* top:0; right:0; bottom:0; left:0; */
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;   /* cover the window while preserving aspect ratio */
+      display: block;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: none;
+    }
+
+    /* hide mouse cursor when idle */
+    body.hide-cursor { cursor: none; }
+  </style>
+</head>
+<body>
+  <!--
+    Attributes:
+      autoplay - start playing
+      muted - required by most browsers to allow autoplay
+      loop - repeat forever
+      playsinline - allow inline playback on mobile/Safari
+      preload="auto" - hint to fetch early
+      controls omitted intentionally
+  -->
+  <video id="vw"
+         src="https://files.catbox.moe/qoodir.mp4"
+         autoplay muted loop playsinline preload="auto"
+         tabindex="-1"
+         aria-hidden="true"></video>
+
+  <script>
+    (function(){
+      const v = document.getElementById('vw');
+
+      // Prevent context menu / right-click on video
+      v.addEventListener('contextmenu', e => e.preventDefault());
+
+      // Prevent dragging the video
+      v.addEventListener('dragstart', e => e.preventDefault());
+
+      // Prevent keyboard controls that might pause the video for common keys (space)
+      window.addEventListener('keydown', (e) => {
+        // block Space (32), Arrow keys (37-40) and Media keys (if desired).
+        // We still allow Esc (27) so the user can use browser-level actions.
+        const blocked = [32,37,38,39,40];
+        if (blocked.includes(e.keyCode)) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }, {capture: true});
+
+      // Keep video playing if something tries to pause it
+      v.addEventListener('pause', () => {
+        // small timeout to avoid aggressive looping in weird states
+        setTimeout(() => { if (v.paused) v.play().catch(()=>{}); }, 50);
+      });
+
+      // Hide cursor after 2s of inactivity (desktop)
+      let cursorTimer = null;
+      function showCursor() {
+        document.body.classList.remove('hide-cursor');
+        if (cursorTimer) clearTimeout(cursorTimer);
+        cursorTimer = setTimeout(() => {
+          document.body.classList.add('hide-cursor');
+        }, 2000);
+      }
+      ['mousemove','mousedown','touchstart','keydown'].forEach(evt => {
+        window.addEventListener(evt, showCursor, {passive: true});
+      });
+      showCursor();
+
+      // Prevent accidental link/focus outlines — keep page just the video
+      window.addEventListener('focus', () => {
+        // ensure the video keeps playing when tab regains focus
+        v.play().catch(()=>{});
+      });
+
+      // Ensure video fills window on resize (object-fit handles cover)
+      window.addEventListener('resize', () => {
+        // no-op but kept in case future adjustments needed
+      });
+
+      // In case autoplay is blocked, attempt to play when user interacts
+      function tryPlayOnInteraction() {
+        v.play().catch(()=>{});
+        window.removeEventListener('click', tryPlayOnInteraction);
+        window.removeEventListener('touchstart', tryPlayOnInteraction);
+        window.removeEventListener('keydown', tryPlayOnInteraction);
+      }
+      window.addEventListener('click', tryPlayOnInteraction, {passive: true});
+      window.addEventListener('touchstart', tryPlayOnInteraction, {passive: true});
+      window.addEventListener('keydown', tryPlayOnInteraction, {passive: true});
+    })();
+  </script>
+</body>
+</html>
