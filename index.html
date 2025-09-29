@@ -1,69 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>M3U8 Live Stream</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.css">
-    <style>
-        /* Make the player fill the entire window */
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden; /* Hide scrollbars */
-        }
-        #player-container {
-            width: 100vw;
-            height: 100vh;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>ArtPlayer M3U8 Example</title>
+  <script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    body { background: #222; color: #eee; font-family: sans-serif; }
+    #container { width: 800px; margin: 40px auto; }
+    #player { width: 800px; height: 450px; }
+    #inputs { margin-bottom: 20px; }
+    input[type="text"] { width: 350px; }
+    label { display: inline-block; min-width: 110px; }
+    button { margin-left: 10px; }
+  </style>
 </head>
 <body>
-    <div id="player-container"></div>
+<div id="container">
+  <div id="inputs">
+    <label for="videoUrl">Video (.m3u8):</label>
+    <input type="text" id="videoUrl" placeholder="Enter video.m3u8 URL"><br><br>
+    <label for="audioUrl">Audio (.m3u8):</label>
+    <input type="text" id="audioUrl" placeholder="Enter audio.m3u8 URL"><br><br>
+    <label for="subUrl">Subtitle (.vtt):</label>
+    <input type="text" id="subUrl" placeholder="Enter VTT subtitle URL"><br><br>
+    <button onclick="loadPlayer()">Play</button>
+  </div>
+  <div id="player"></div>
+</div>
+<script>
+  let art = null;
 
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
+  function loadPlayer() {
+    const videoUrl = document.getElementById('videoUrl').value.trim();
+    const audioUrl = document.getElementById('audioUrl').value.trim();
+    const subUrl = document.getElementById('subUrl').value.trim();
 
-    <script>
-        var art = new Artplayer({
-            container: '#player-container',
-            url: 'https://lb3.strmd.top/secure/njkayIgHnpKxJinfccRwNagMikEUTFkc/alpha/stream/bangladesh-vs-sri-lanka/3/playlist.m3u8',
-            type: 'm3u8',
-            // Player settings
-            isLive: true,
-            autoplay: true,
-            autoSize: true,
-            fullscreen: true,
-            setting: true,
-            pip: true,
-            // Custom M3U8 playback engine using hls.js
-            customType: {
-                m3u8: function playM3u8(video, url, art) {
-                    if (Hls.isSupported()) {
-                        const hls = new Hls();
-                        hls.loadSource(url);
-                        hls.attachMedia(video);
-                        // Optional: Listen for HLS events
-                        hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                           console.log('Manifest loaded and parsed');
-                           video.play();
-                        });
-                        // Allow ArtPlayer to control hls instance
-                        art.hls = hls;
-                    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                        // For Safari and other native HLS players
-                        video.src = url;
-                        video.addEventListener('loadedmetadata', function() {
-                            video.play();
-                        });
-                    } else {
-                        art.notice.show('HLS is not supported in your browser.');
-                    }
-                },
-            },
-        });
-    </script>
+    if (!videoUrl) {
+      alert('Please enter video.m3u8 URL.');
+      return;
+    }
+
+    // Destroy previous player instance if exists
+    if (art) {
+      art.destroy(true);
+      document.getElementById('player').innerHTML = '';
+    }
+
+    art = new Artplayer({
+      container: '#player',
+      url: videoUrl,
+      type: 'm3u8',
+      subtitle: subUrl ? {
+        url: subUrl,
+        type: 'vtt',
+        style: { color: '#ff0', fontSize: '18px' },
+      } : null,
+      volume: 0.8,
+      // Custom HLS setup for m3u8
+      customType: {
+        m3u8: function(video, url) {
+          if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, function() {
+              video.play();
+            });
+            // If audio URL is provided, load as a separate track
+            if (audioUrl) {
+              // Use Hls.js audio track selector
+              hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, function(_, data) {
+                // Attempt to add extra audio track if possible (advanced usage)
+                // For most cases, m3u8 should contain both video and audio tracks
+                // or you should mux them into one stream
+                // This is a complex use-case and may require server-side muxing.
+              });
+            }
+          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = url;
+            video.addEventListener('loadedmetadata', function() {
+              video.play();
+            });
+          }
+        }
+      },
+    });
+  }
+</script>
 </body>
 </html>
