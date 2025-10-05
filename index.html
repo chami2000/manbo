@@ -1,92 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ArtPlayer M3U8 Example</title>
-  <script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <style>
-    body { background: #222; color: #eee; font-family: sans-serif; }
-    #container { width: 800px; margin: 40px auto; }
-    #player { width: 800px; height: 450px; }
-    #inputs { margin-bottom: 20px; }
-    input[type="text"] { width: 350px; }
-    label { display: inline-block; min-width: 110px; }
-    button { margin-left: 10px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OPTIONS Request Loop</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0d1117;
+    --card: #161b22;
+    --accent: #238636;
+    --text: #e6edf3;
+    --error: #f85149;
+    --font: 'Segoe UI', Roboto, sans-serif;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  h1 {
+    margin-bottom: 1rem;
+    color: var(--accent);
+  }
+
+  .controls {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  button {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  button:hover {
+    background: var(--accent);
+    color: white;
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .log {
+    background: var(--card);
+    width: 100%;
+    max-width: 600px;
+    height: 300px;
+    border-radius: 10px;
+    overflow-y: auto;
+    padding: 1rem;
+    box-shadow: 0 0 10px #0005;
+    font-family: monospace;
+    white-space: pre-wrap;
+  }
+
+  .success { color: var(--accent); }
+  .error { color: var(--error); }
+</style>
 </head>
 <body>
-<div id="container">
-  <div id="inputs">
-    <label for="videoUrl">Video (.m3u8):</label>
-    <input type="text" id="videoUrl" placeholder="Enter video.m3u8 URL"><br><br>
-    <label for="audioUrl">Audio (.m3u8):</label>
-    <input type="text" id="audioUrl" placeholder="Enter audio.m3u8 URL"><br><br>
-    <label for="subUrl">Subtitle (.vtt):</label>
-    <input type="text" id="subUrl" placeholder="Enter VTT subtitle URL"><br><br>
-    <button onclick="loadPlayer()">Play</button>
-  </div>
-  <div id="player"></div>
+
+<h1>OPTIONS Request Monitor</h1>
+
+<div class="controls">
+  <button id="startBtn">▶ Start</button>
+  <button id="stopBtn" disabled>⏹ Stop</button>
 </div>
+
+<div class="log" id="log"></div>
+
 <script>
-  let art = null;
+  const url = "http://speedtest1.mobitel.lk";
+  let intervalId = null;
+  const logBox = document.getElementById("log");
+  const startBtn = document.getElementById("startBtn");
+  const stopBtn = document.getElementById("stopBtn");
 
-  function loadPlayer() {
-    const videoUrl = document.getElementById('videoUrl').value.trim();
-    const audioUrl = document.getElementById('audioUrl').value.trim();
-    const subUrl = document.getElementById('subUrl').value.trim();
-
-    if (!videoUrl) {
-      alert('Please enter video.m3u8 URL.');
-      return;
+  async function sendOptions() {
+    const startTime = new Date().toLocaleTimeString();
+    try {
+      const response = await fetch(url, { method: "OPTIONS" });
+      log(`✅ [${startTime}] OPTIONS -> ${response.status} ${response.statusText}`, "success");
+    } catch (err) {
+      log(`❌ [${startTime}] Error: ${err.message}`, "error");
     }
-
-    // Destroy previous player instance if exists
-    if (art) {
-      art.destroy(true);
-      document.getElementById('player').innerHTML = '';
-    }
-
-    art = new Artplayer({
-      container: '#player',
-      url: videoUrl,
-      type: 'm3u8',
-      subtitle: subUrl ? {
-        url: subUrl,
-        type: 'vtt',
-        style: { color: '#ff0', fontSize: '18px' },
-      } : null,
-      volume: 0.8,
-      // Custom HLS setup for m3u8
-      customType: {
-        m3u8: function(video, url) {
-          if (Hls.isSupported()) {
-            const hls = new Hls();
-            hls.loadSource(url);
-            hls.attachMedia(video);
-            hls.on(Hls.Events.MANIFEST_PARSED, function() {
-              video.play();
-            });
-            // If audio URL is provided, load as a separate track
-            if (audioUrl) {
-              // Use Hls.js audio track selector
-              hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, function(_, data) {
-                // Attempt to add extra audio track if possible (advanced usage)
-                // For most cases, m3u8 should contain both video and audio tracks
-                // or you should mux them into one stream
-                // This is a complex use-case and may require server-side muxing.
-              });
-            }
-          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = url;
-            video.addEventListener('loadedmetadata', function() {
-              video.play();
-            });
-          }
-        }
-      },
-    });
   }
+
+  function log(message, type = "") {
+    const line = document.createElement("div");
+    line.className = type;
+    line.textContent = message;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  startBtn.addEventListener("click", () => {
+    if (intervalId) return;
+    sendOptions(); // run immediately once
+    intervalId = setInterval(sendOptions, 20000); // every 20s
+    log("▶ Started OPTIONS requests (every 20s)");
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+  });
+
+  stopBtn.addEventListener("click", () => {
+    clearInterval(intervalId);
+    intervalId = null;
+    log("⏹ Stopped requests");
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+  });
 </script>
+
 </body>
 </html>
