@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oh-My-Live2D Simple Demo</title>
+    <title>Oh-My-Live2D Fixed</title>
     <style>
         body {
             background-color: #2b2b2b;
@@ -15,80 +15,57 @@
             height: 100vh;
             margin: 0;
         }
-        .content {
-            text-align: center;
-        }
-        h1 { margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
     <div class="content">
-        <h1>Welcome to my Site</h1>
-        <p>Look at the bottom left corner!</p>
+        <h1>It works now!</h1>
+        <p>Check the bottom left.</p>
     </div>
 
-    <!-- 1. Import the library from CDN -->
+    <!-- Import the latest version -->
     <script src="https://unpkg.com/oh-my-live2d@latest"></script>
 
-    <!-- 2. Initialize the model -->
     <script>
-        // Check if the library is loaded
-        if (OML2D) {
-            OML2D.load({
-                // --- Configuration Options ---
-                
-                // Where to dock the model ('left' or 'right')
-                dockedPosition: "left", 
-
-                // Show on mobile devices?
-                mobileDisplay: true,
-
-                // Customize the "Tips" that appear when hovering/clicking
-                tips: {
-                    style: {
-                        width: 230,
-                        height: 120,
-                        left: "calc(50% + 20px)",
-                        top: "-100px",
-                    },
-                    idleTips: {
-                        word: ["Welcome to the website!", "Don't click me too hard!", "How are you today?"]
+        // FIXED: The function name changed from .load() to .loadOml2d()
+        OML2D.loadOml2d({
+            dockedPosition: "left",
+            
+            models: [
+                {
+                    path: 'https://model.oml2d.com/shizuku/shizuku.model.json',
+                    scale: 0.15,
+                    position: [0, 60],
+                    stageStyle: {
+                        height: 350
                     }
-                },
-
-                // Model Management
-                models: [
-                    {
-                        // Using a standard free model from the CDN repository
-                        path: 'https://model.oml2d.com/shizuku/shizuku.model.json',
-                        scale: 0.15,
-                        position: [0, 60],
-                        stageStyle: {
-                            height: 350
-                        }
-                    }
-                ],
-
-                // Customize the menu buttons (optional)
-                menus: {
-                    items: [
-                        {
-                            id: 'home',
-                            icon: 'home',
-                            title: 'Home',
-                            onClick: () => window.location.reload() 
-                        },
-                        {
-                            id: 'switch-texture',
-                            icon: 'skin', 
-                            title: 'Change Clothes',
-                            onClick: (item, actions) => actions.randomMove() // Make her move
-                        }
-                    ]
                 }
-            });
-        }
+            ],
+
+            tips: {
+                style: {
+                    width: 230,
+                    height: 120,
+                    left: "calc(50% + 20px)",
+                    top: "-100px",
+                },
+                idleTips: {
+                    word: ["Hello there!", "Welcome to the site."]
+                }
+            },
+            
+            menus: {
+                items: [
+                    {
+                        id: 'home',
+                        icon: 'home',
+                        title: 'Home',
+                        onClick: () => window.location.reload() 
+                    }
+                ]
+            }
+        });
     </script>
 </body>
 </html>
